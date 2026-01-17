@@ -14,6 +14,12 @@
     
     <!-- 引入 Babel 用于解析 JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 jsrsasign 用于前端生成 JWT (智谱API鉴权必备) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
+    
+    <!-- 引入 Mammoth.js 用于解析 .docx 文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
     <style>
         /* 七彩高斯模糊背景动画 */
@@ -91,7 +97,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // --- 1. 图标组件 ---
         const IconWrapper = ({ children, className }) => (
@@ -116,18 +122,23 @@
         const Gamepad2 = ({ className }) => <IconWrapper className={className}><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="15" y1="13" x2="15.01" y2="13"></line><line x1="18" y1="11" x2="18.01" y2="11"></line><rect x="2" y="6" width="20" height="12" rx="2"></rect></IconWrapper>;
         const Flame = ({ className }) => <IconWrapper className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></IconWrapper>;
         const Clapperboard = ({ className }) => <IconWrapper className={className}><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M2 12h20" /><path d="M6 6v6" /><path d="M12 6v6" /><path d="M18 6v6" /></IconWrapper>;
+        const Wand2 = ({ className }) => <IconWrapper className={className}><path d="m19 2 2 2-2 2-2-2 2-2Z"/><path d="m5 7 2 2-2 2-2-2 2-2Z"/><path d="m21.5 12.5-7 7-9-9 7-7 9 9Z"/><path d="m15 21 2-2"/></IconWrapper>;
+        const Copy = ({ className }) => <IconWrapper className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></IconWrapper>;
+        const Sparkles = ({ className }) => <IconWrapper className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></IconWrapper>;
+        const BrainCircuit = ({ className }) => <IconWrapper className={className}><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.97-3.284"/><path d="M17.97 14.716A4 4 0 0 1 16 18"/></IconWrapper>;
+        const FileText = ({ className }) => <IconWrapper className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></IconWrapper>;
+        const ImagePlus = ({ className }) => <IconWrapper className={className}><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path><line x1="16" y1="5" x2="22" y2="5"></line><line x1="19" y1="2" x2="19" y2="8"></line><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></IconWrapper>;
+        const CheckCircle = ({ className }) => <IconWrapper className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></IconWrapper>;
+        const AlertCircle = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></IconWrapper>;
 
         // --- 2. 基础 UI 组件 (七彩高斯风) ---
-        
         const Card = ({ children, className = "", onClick }) => (
             <div 
                 onClick={onClick}
                 className={`relative backdrop-blur-2xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden group transition-all duration-300 ${onClick ? 'cursor-pointer hover:bg-white/10 hover:border-white/20 hover:scale-[1.01] hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)]' : ''} ${className}`}
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                <div className="relative z-10">
-                    {children}
-                </div>
+                <div className="relative z-10">{children}</div>
             </div>
         );
 
@@ -140,388 +151,445 @@
                 legendary: "bg-yellow-500/20 text-yellow-200 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.4)]",
                 script: "bg-indigo-500/20 text-indigo-200 border-indigo-500/30"
             };
-            return (
-                <span className={`px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${styles[type] || styles.neutral}`}>
-                {children}
-                </span>
-            );
+            return <span className={`px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${styles[type] || styles.neutral}`}>{children}</span>;
         };
 
-        // --- 3. 游戏模态框 (Neural Gacha Game) ---
-        const GameModal = ({ onClose }) => {
-            const [isRolling, setIsRolling] = useState(false);
-            const [result, setResult] = useState(null);
-            const [inventory, setInventory] = useState(() => {
-                const saved = localStorage.getItem('vidu_game_inventory');
-                return saved ? JSON.parse(saved) : { common: 0, rare: 0, epic: 0, legendary: 0 };
-            });
+        // --- Vidu Prompt Director Tools ---
+        const VIDU_LIBRARY = {
+            angle: ["正面", "侧面", "四分之三侧面", "背面", "低角度仰拍", "高角度俯拍", "平视镜头", "鸟瞰镜头", "过肩镜头(Over the shoulder)", "镜头环绕"],
+            shotSize: ["极致特写", "特写", "近景", "中景", "中全景", "全景", "远景"],
+            dynamics: ["静态 (几乎不动)", "小动态 (呼吸/眼神/衣摆)", "中动态 (走动/转身/抬手)", "大动态 (冲刺/爆发-慎用)"],
+            cameraMove: ["static shot", "move left", "move right", "move up", "move down", "zoom in", "pull back", "pan left", "pan right", "follow hand", "camera shake", "time-lapse shot", "macro shot", "FPV shot", "aerial shot"]
+        };
+
+        // --- 核心：API 逻辑 ---
+        const generateZhipuJWT = (apiKey) => {
+            try {
+                const [id, secret] = apiKey.split('.');
+                if (!id || !secret) return null;
+                const header = { alg: 'HS256', sign_type: 'SIGN' };
+                const now = Date.now();
+                const payload = { api_key: id, exp: now + 3600 * 1000, timestamp: now };
+                return KJUR.jws.JWS.sign("HS256", JSON.stringify(header), JSON.stringify(payload), secret);
+            } catch (e) {
+                console.error("JWT Generation Failed:", e);
+                return null;
+            }
+        };
+        
+        // Key Sanitizer
+        const cleanKey = (key) => key ? key.replace(/[^\x00-\x7F]/g, "").trim() : "";
+
+        const DirectorModal = ({ onClose }) => {
+            const [shots, setShots] = useState([]); // 初始为空，不显示手动框架
+            const [rawInput, setRawInput] = useState("");
+            const [isAiProcessing, setIsAiProcessing] = useState(false);
+            const fileInputRef = useRef(null);
+            
+            // Image Refs
+            const charImgRef = useRef(null);
+            const sceneImgRef = useRef(null);
+            const [charImg, setCharImg] = useState(null);
+            const [sceneImg, setSceneImg] = useState(null);
+            
+            // API States
+            const [provider, setProvider] = useState(localStorage.getItem('vidu_ai_provider') || 'offline'); 
+            const [zhipuKey, setZhipuKey] = useState(localStorage.getItem('zhipu_api_key') || '');
+            const [deepseekKey, setDeepseekKey] = useState(localStorage.getItem('deepseek_api_key') || '');
+            const [siliconFlowKey, setSiliconFlowKey] = useState(localStorage.getItem('siliconflow_api_key') || '');
+            const [showApiSettings, setShowApiSettings] = useState(false);
+            
+            // API Test Status
+            const [apiStatus, setApiStatus] = useState({ loading: false, success: null, msg: '' });
 
             useEffect(() => {
-                localStorage.setItem('vidu_game_inventory', JSON.stringify(inventory));
-            }, [inventory]);
+                localStorage.setItem('vidu_ai_provider', provider);
+                if (zhipuKey) localStorage.setItem('zhipu_api_key', cleanKey(zhipuKey));
+                if (deepseekKey) localStorage.setItem('deepseek_api_key', cleanKey(deepseekKey));
+                if (siliconFlowKey) localStorage.setItem('siliconflow_api_key', cleanKey(siliconFlowKey));
+            }, [provider, zhipuKey, deepseekKey, siliconFlowKey]);
 
-            const roll = () => {
-                if(isRolling) return;
-                setIsRolling(true);
-                setResult(null);
+            // --- API 测试功能 ---
+            const testConnection = async (testProvider) => {
+                setApiStatus({ loading: true, success: null, msg: 'Testing...' });
+                let endpoint, headers, body;
+                
+                try {
+                    if (testProvider === 'zhipu') {
+                        const k = cleanKey(zhipuKey);
+                        if (!k) throw new Error("Key为空");
+                        const token = generateZhipuJWT(k);
+                        if(!token) throw new Error("JWT生成失败");
+                        endpoint = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+                        headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+                        body = JSON.stringify({ model: "glm-4-flash", messages: [{ role: "user", content: "Hi" }] });
+                    } else if (testProvider === 'deepseek') {
+                         const k = cleanKey(deepseekKey);
+                         if (!k) throw new Error("Key为空");
+                        endpoint = 'https://api.deepseek.com/chat/completions';
+                        headers = { 'Authorization': `Bearer ${k}`, 'Content-Type': 'application/json' };
+                        body = JSON.stringify({ model: "deepseek-chat", messages: [{ role: "user", content: "Hi" }], stream: false });
+                    } else if (testProvider === 'siliconflow') {
+                         const k = cleanKey(siliconFlowKey);
+                         if (!k) throw new Error("Key为空");
+                        endpoint = 'https://api.siliconflow.cn/v1/chat/completions';
+                        headers = { 'Authorization': `Bearer ${k}`, 'Content-Type': 'application/json' };
+                        body = JSON.stringify({ model: "deepseek-ai/DeepSeek-V3", messages: [{ role: "user", content: "Hi" }], stream: false });
+                    } else {
+                        throw new Error("离线模式无需测试");
+                    }
 
-                setTimeout(() => {
-                    const rand = Math.random() * 100;
-                    let type = 'common';
-                    let text = 'Glitch Mess (废片)';
+                    const res = await fetch(endpoint, { method: 'POST', headers, body });
+                    if (res.ok) {
+                        setApiStatus({ loading: false, success: true, msg: '连接成功 (200 OK)' });
+                        setTimeout(() => setApiStatus({ ...apiStatus, success: null, msg: '' }), 3000);
+                    } else {
+                        throw new Error(`连接失败: HTTP ${res.status}`);
+                    }
+                } catch (e) {
+                    setApiStatus({ loading: false, success: false, msg: e.message });
+                }
+            };
+
+            const generatePrompt = (shot) => {
+                const dynamicsKey = shot.dynamics?.split(" ")[0] || ""; 
+                let safeFace = shot.face;
+                const noFaceShots = ["背面", "远景", "全景", "极致特写"];
+                const noFaceAngles = ["背面", "鸟瞰镜头"];
+                const allowFaceAngles = ["正面", "侧面", "四分之三侧面"];
+                const allowFaceShots = ["特写", "近景", "中景"];
+                const canHaveFace = allowFaceAngles.includes(shot.angle) && allowFaceShots.includes(shot.shotSize);
+
+                if (!canHaveFace || noFaceShots.some(s => shot.shotSize.includes(s)) || noFaceAngles.some(a => shot.angle.includes(a))) {
+                    safeFace = ""; 
+                }
+
+                const subjectWithDynamics = shot.subject ? `${shot.subject}，${dynamicsKey}` : "";
+
+                const elements = [
+                    shot.angle,
+                    shot.shotSize,
+                    subjectWithDynamics,
+                    safeFace,
+                    shot.background,
+                    "画面精致清晰",
+                    "2D anime style",
+                    "8K超清",
+                    "色调统一"
+                ].filter(e => e && e.trim() !== "");
+
+                return `${elements.join("，")}，${shot.cameraMove}`;
+            };
+
+            const fullPrompt = shots.map((s, i) => `${i + 1}) ${generatePrompt(s)}`).join("\n");
+
+            const copyToClipboard = () => {
+                if (!fullPrompt) return;
+                const textarea = document.createElement('textarea');
+                textarea.value = fullPrompt;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert("已复制到剪贴板！");
+            };
+
+            const handleImgUpload = (e, setter) => {
+                const file = e.target.files[0];
+                if (file) setter(URL.createObjectURL(file));
+            };
+
+            const handleFileUpload = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                if (file.name.endsWith('.docx')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        mammoth.extractRawText({arrayBuffer: e.target.result})
+                            .then(result => setRawInput(result.value))
+                            .catch(err => alert("DOCX 解析失败: " + err.message));
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = e => setRawInput(e.target.result);
+                    reader.readAsText(file);
+                } else {
+                    alert("仅支持 .docx 或 .txt 文件");
+                }
+            };
+
+            const handleAiPolish = async () => {
+                if (!rawInput.trim()) return alert("请先输入一段剧本素材");
+                setIsAiProcessing(true);
+                let aiResults = [];
+                const systemPrompt = `你是"酱油动漫"体系的专业Vidu分镜导演。任务：分析用户的[剧本片段]，将其拆解为【多个】分镜镜头列表。
+                输出格式：JSON数组 [{angle, shotSize, subject, face, background, dynamics, cameraMove}, ...]
+                规则：
+                1. 默认一切主体来自参考图，不新增设定。
+                2. 词库严格限制：
+                   angle: 正面, 侧面, 四分之三侧面, 背面, 低角度仰拍, 高角度俯拍, 平视镜头, 鸟瞰镜头, 过肩镜头(Over the shoulder), 镜头环绕
+                   shotSize: 极致特写, 特写, 近景, 中景, 中全景, 全景, 远景
+                   dynamics: 静态 (几乎不动), 小动态 (呼吸/眼神/衣摆), 中动态 (走动/转身/抬手), 大动态 (冲刺/爆发-慎用)
+                   cameraMove: static shot, move left, move right, move up, move down, zoom in, pull back, pan left, pan right, follow hand, camera shake, time-lapse shot, macro shot, FPV shot, aerial shot
+                3. face: 仅在(正面/侧面/四分之三侧面)且(特写/近景/中景)时输出"眼睛精致, 五官清晰"；否则留空。
+                4. subject: 必须包含"人物+动作+表情+站位关系"。中文。
+                5. background: 简洁中文描述。
+                仅输出JSON数组。`;
+
+                try {
+                    let responseData;
+                    if (provider === 'zhipu') {
+                        const token = generateZhipuJWT(cleanKey(zhipuKey));
+                        if (!token) throw new Error("Key无效");
+                        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ model: "glm-4-flash", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: rawInput }], temperature: 0.2 })
+                        });
+                        if (!response.ok) throw new Error("Zhipu API Error");
+                        responseData = await response.json();
+                    } else if (provider === 'deepseek') {
+                         const k = cleanKey(deepseekKey);
+                        const response = await fetch('https://api.deepseek.com/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${k}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: rawInput }], temperature: 0.2, stream: false })
+                        });
+                        if (!response.ok) throw new Error("DeepSeek API Error");
+                        responseData = await response.json();
+                    } else if (provider === 'siliconflow') {
+                        const k = cleanKey(siliconFlowKey);
+                        const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${k}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ model: "deepseek-ai/DeepSeek-V3", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: rawInput }], temperature: 0.2, stream: false })
+                        });
+                        if (!response.ok) throw new Error("SiliconFlow API Error");
+                        responseData = await response.json();
+                    } else if (provider === 'offline') {
+                         aiResults = [{ angle: "正面", shotSize: "中景", subject: rawInput.substring(0, 20), background: "简单背景", dynamics: "小动态 (呼吸/眼神/衣摆)", cameraMove: "static shot", face: "五官精致" }];
+                    }
                     
-                    if (rand > 95) { type = 'legendary'; text = 'Vidu Masterpiece (神作)'; }
-                    else if (rand > 85) { type = 'epic'; text = 'Viral Clip (爆款)'; }
-                    else if (rand > 55) { type = 'rare'; text = 'Standard Shot (标准)'; }
+                    if (responseData) {
+                        const content = responseData.choices[0].message.content.replace(/```json|```/g, '').trim();
+                        let parsedData = JSON.parse(content);
+                        if (!Array.isArray(parsedData)) parsedData = [parsedData];
+                        aiResults = parsedData;
+                    }
+                } catch (e) {
+                    console.warn("AI Request Failed:", e);
+                    alert(`${provider.toUpperCase()} 失败（${e.message}）。转为离线模式。`);
+                     aiResults = [{ angle: "正面", shotSize: "中景", subject: rawInput.substring(0, 15), background: "离线背景", dynamics: "小动态", cameraMove: "static shot", face: "" }];
+                }
 
-                    setInventory(prev => ({...prev, [type]: prev[type] + 1}));
-                    setResult({ type, text });
-                    setIsRolling(false);
-                }, 1000); // 1秒生成动画模拟
+                const newShots = aiResults.map((res, idx) => ({
+                    id: Date.now() + idx,
+                    angle: res.angle || "正面",
+                    shotSize: res.shotSize || "中景",
+                    subject: res.subject || "主体描述",
+                    face: res.face || "",
+                    background: res.background || "",
+                    dynamics: res.dynamics || "小动态 (呼吸/眼神/衣摆)",
+                    cameraMove: res.cameraMove || "static shot"
+                }));
+                setShots(newShots);
+                setIsAiProcessing(false);
+            };
+
+            const addShot = () => {
+                setShots([...shots, { id: Date.now(), angle: "正面", shotSize: "中景", subject: "", face: "", background: "", dynamics: "小动态 (呼吸/眼神/衣摆)", cameraMove: "static shot" }]);
+            };
+
+            const updateShot = (id, field, value) => {
+                setShots(shots.map(s => s.id === id ? { ...s, [field]: value } : s));
+            };
+
+            const removeShot = (id) => {
+                setShots(shots.filter(s => s.id !== id));
+            };
+
+            // 动态计算是否允许加脸 (UI反馈)
+            const canHaveFace = (angle, shotSize) => {
+                 const allowFaceAngles = ["正面", "侧面", "四分之三侧面"];
+                 const allowFaceShots = ["特写", "近景", "中景"];
+                 return allowFaceAngles.includes(angle) && allowFaceShots.includes(shotSize);
             };
 
             return (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
-                    <div className="bg-[#0f111a] border border-cyan-500/30 rounded-2xl w-full max-w-sm shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-[modal-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 text-center">
-                            <h3 className="text-2xl font-black italic bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400 mb-2">NEURAL GACHA</h3>
-                            <p className="text-xs text-white/40 mb-6">Simulate AI Generation (摸鱼模拟器)</p>
-                            
-                            {/* 结果显示区 */}
-                            <div className="h-32 flex items-center justify-center mb-6 bg-black/40 rounded-xl border border-white/5 relative overflow-hidden">
-                                {isRolling ? (
-                                    <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
-                                ) : result ? (
-                                    <div className={`animate-[gacha-flash_0.5s_ease-out] flex flex-col items-center gap-2 ${
-                                        result.type === 'legendary' ? 'text-yellow-300 drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]' :
-                                        result.type === 'epic' ? 'text-purple-300 drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]' :
-                                        result.type === 'rare' ? 'text-cyan-300' : 'text-slate-400'
-                                    }`}>
-                                        <span className="text-3xl">
-                                            {result.type === 'legendary' ? '👑' : result.type === 'epic' ? '🌟' : result.type === 'rare' ? '✨' : '🗑'}
-                                        </span>
-                                        <span className="font-bold text-lg">{result.text}</span>
-                                    </div>
-                                ) : (
-                                    <span className="text-white/20 text-xs">Ready to Generate</span>
-                                )}
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+                    <div className="bg-[#0f111a] border border-purple-500/30 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-[0_0_60px_rgba(168,85,247,0.15)] animate-[modal-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden" onClick={e => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-5 border-b border-white/10 bg-gradient-to-r from-purple-900/20 to-transparent flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <Wand2 className="w-6 h-6 text-purple-400" />
+                                <div><h3 className="text-xl font-bold text-white">Vidu 全自动导演工作台</h3><p className="text-[10px] text-white/40 uppercase tracking-widest">AI Auto-Director & Script Parsing</p></div>
                             </div>
-
-                            <button 
-                                onClick={roll}
-                                disabled={isRolling}
-                                className={`w-full py-4 rounded-xl font-black text-lg tracking-widest uppercase transition-all ${
-                                    isRolling ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 
-                                    'bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] active:scale-95'
-                                }`}
-                            >
-                                {isRolling ? 'GENERATING...' : 'GENERATE (10pts)'}
-                            </button>
-
-                            {/* 仓库统计 */}
-                            <div className="mt-6 grid grid-cols-4 gap-2 text-center">
-                                <div className="p-2 bg-white/5 rounded border border-white/5">
-                                    <div className="text-[10px] text-yellow-500 font-bold">SSR</div>
-                                    <div className="font-mono text-white">{inventory.legendary}</div>
-                                </div>
-                                <div className="p-2 bg-white/5 rounded border border-white/5">
-                                    <div className="text-[10px] text-purple-400 font-bold">SR</div>
-                                    <div className="font-mono text-white">{inventory.epic}</div>
-                                </div>
-                                <div className="p-2 bg-white/5 rounded border border-white/5">
-                                    <div className="text-[10px] text-cyan-400 font-bold">R</div>
-                                    <div className="font-mono text-white">{inventory.rare}</div>
-                                </div>
-                                <div className="p-2 bg-white/5 rounded border border-white/5">
-                                    <div className="text-[10px] text-slate-500 font-bold">N</div>
-                                    <div className="font-mono text-white">{inventory.common}</div>
-                                </div>
-                            </div>
+                            <button onClick={onClose}><X className="w-6 h-6 text-white/40 hover:text-white" /></button>
                         </div>
-                    </div>
-                </div>
-            );
-        };
 
-        // --- 4. 详情模态框 ---
-        const DetailModal = ({ title, type, data, onClose, baseEfficiency }) => {
-            const validRecords = data.filter(r => r.type === 'normal');
-
-            const renderContent = () => {
-                switch(type) {
-                    case 'consumption':
-                        return (
-                            <div className="space-y-4">
-                                <div className="text-xs text-white/50 mb-2">算力消耗日志 (Shared Cost)</div>
-                                <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-2">
-                                    {validRecords.map(r => (
-                                        <div key={r.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-mono text-white/70">{r.date}</span>
-                                                {r.scriptName && <span className="text-[10px] text-indigo-300">🎬 {r.scriptName}</span>}
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500" style={{width: `${Math.min((r.consumed/3000)*100, 100)}%`}}></div>
-                                                </div>
-                                                <span className="font-mono font-bold w-12 text-right">{r.consumed}</span>
-                                            </div>
+                        {/* Content */}
+                        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                            {/* 左侧：输入与控制区 */}
+                            <div className="w-full md:w-1/3 bg-black/20 p-6 border-r border-white/10 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
+                                {/* 1. 资产上传 (显眼位置) */}
+                                <div className="space-y-2">
+                                    <div className="text-[10px] font-bold text-cyan-300 uppercase flex items-center gap-1"><ImagePlus className="w-3 h-3" /> Step 1: Upload Assets (素材)</div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="aspect-video border border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-white/40 transition-all relative overflow-hidden group" onClick={() => charImgRef.current.click()}>
+                                            {charImg ? <img src={charImg} className="absolute inset-0 w-full h-full object-cover" /> : <div className="text-center text-white/30 group-hover:text-white/50"><Users className="w-6 h-6 mx-auto mb-1" /><span className="text-[9px]">角色参考图</span></div>}
+                                            <input type="file" ref={charImgRef} onChange={e => handleImgUpload(e, setCharImg)} className="hidden" accept="image/*" />
                                         </div>
-                                    ))}
+                                        <div className="aspect-video border border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 hover:border-white/40 transition-all relative overflow-hidden group" onClick={() => sceneImgRef.current.click()}>
+                                            {sceneImg ? <img src={sceneImg} className="absolute inset-0 w-full h-full object-cover" /> : <div className="text-center text-white/30 group-hover:text-white/50"><Clapperboard className="w-6 h-6 mx-auto mb-1" /><span className="text-[9px]">场景参考图</span></div>}
+                                            <input type="file" ref={sceneImgRef} onChange={e => handleImgUpload(e, setSceneImg)} className="hidden" accept="image/*" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 2. API 配置 (带状态灯) */}
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-[10px] font-bold text-purple-300 uppercase flex items-center gap-1"><BrainCircuit className="w-3 h-3" /> Step 2: AI Config</div>
+                                        <button onClick={() => setShowApiSettings(!showApiSettings)} className="text-[10px] text-white/50 hover:text-white underline">Settings</button>
+                                    </div>
+                                    
+                                    <div className="flex gap-2">
+                                        <select value={provider} onChange={e => setProvider(e.target.value)} className="flex-1 bg-black/40 border border-purple-500/30 rounded-lg px-2 py-2 text-white text-xs focus:outline-none">
+                                            <option value="offline">离线模式 (Rule-based)</option>
+                                            <option value="siliconflow">SiliconFlow (DS-V3)</option>
+                                            <option value="zhipu">智谱 AI (GLM-4)</option>
+                                            <option value="deepseek">DeepSeek (Official)</option>
+                                        </select>
+                                        {/* 检测按钮 */}
+                                        {provider !== 'offline' && (
+                                            <button onClick={() => testConnection(provider)} disabled={apiStatus.loading} className={`px-3 rounded-lg border flex items-center gap-1 transition-all ${apiStatus.success === true ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : apiStatus.success === false ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'}`}>
+                                                {apiStatus.loading ? <div className="w-3 h-3 border border-current rounded-full animate-spin"></div> : <Zap className="w-3 h-3" />}
+                                            </button>
+                                        )}
+                                    </div>
+                                    {/* 报错/成功信息 */}
+                                    {apiStatus.msg && <div className={`text-[10px] px-1 ${apiStatus.success ? 'text-emerald-400' : 'text-rose-400'}`}>{apiStatus.msg}</div>}
+
+                                    {/* 折叠的Key输入框 */}
+                                    {showApiSettings && (
+                                        <div className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2 animate-[fadeIn_0.2s]">
+                                            <input type="password" value={siliconFlowKey} onChange={e => setSiliconFlowKey(e.target.value)} placeholder="SiliconFlow Key (sk-...)" className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:border-purple-500" />
+                                            <input type="password" value={zhipuKey} onChange={e => setZhipuKey(e.target.value)} placeholder="Zhipu Key (id.secret)" className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:border-purple-500" />
+                                            <input type="password" value={deepseekKey} onChange={e => setDeepseekKey(e.target.value)} placeholder="DeepSeek Key (sk-...)" className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:border-purple-500" />
+                                            <p className="text-[9px] text-white/30">* 仅存储在本地浏览器，不会上传服务器。</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 3. 剧本输入 & 执行 */}
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-[10px] font-bold text-pink-300 uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> Step 3: Script Input</div>
+                                        <div>
+                                            <input type="file" ref={fileInputRef} className="hidden" accept=".docx,.txt" onChange={handleFileUpload} />
+                                            <button onClick={() => fileInputRef.current.click()} className="text-[9px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-white transition-colors">Import File</button>
+                                        </div>
+                                    </div>
+                                    <textarea 
+                                        value={rawInput} 
+                                        onChange={e => setRawInput(e.target.value)} 
+                                        placeholder="在此输入或导入剧本内容... (例如: 银发少女在雨中奔跑，神情绝望...)" 
+                                        className="flex-1 w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-400 transition-all placeholder-white/20 resize-none font-mono leading-relaxed"
+                                    />
+                                    <button 
+                                        onClick={handleAiPolish}
+                                        disabled={isAiProcessing}
+                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-lg active:scale-95"
+                                    >
+                                        {isAiProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Sparkles className="w-4 h-4" />}
+                                        START AUTO-DIRECTOR (开始分镜)
+                                    </button>
                                 </div>
                             </div>
-                        );
-                    case 'shots':
-                        return (
-                            <div className="space-y-4">
-                                <div className="text-xs text-white/50 mb-2 flex justify-between">
-                                    <span>每日产出对比</span>
-                                    <span className="flex gap-2">
-                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-400"></span>我</span>
-                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-400"></span>队友</span>
-                                    </span>
+
+                            {/* Right Column: Results Display */}
+                            <div className="w-full md:w-2/3 bg-[#050505] p-6 flex flex-col relative">
+                                <div className="flex justify-between items-center mb-4">
+                                    <div className="text-xs text-white/40 uppercase font-bold">Generated Shot List ({shots.length})</div>
+                                    <button onClick={copyToClipboard} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded text-white flex items-center gap-1 transition-all"><Copy className="w-3 h-3" /> Copy All</button>
                                 </div>
-                                <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3">
-                                    {validRecords.map(r => {
-                                        const my = r.myShots || 0;
-                                        const pt = r.partnerShots || 0;
-                                        const total = my + pt;
+                                
+                                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 pb-20">
+                                    {shots.length === 0 && !isAiProcessing && (
+                                        <div className="h-full flex flex-col items-center justify-center text-white/20 select-none pointer-events-none">
+                                            <Clapperboard className="w-16 h-16 mb-4 opacity-20" />
+                                            <p className="text-sm font-mono">Waiting for Script Input...</p>
+                                            <p className="text-xs opacity-50 mt-2">Ready to generate standardized prompts</p>
+                                        </div>
+                                    )}
+                                    
+                                    {shots.map((shot, index) => {
+                                        const faceAllowed = canHaveFace(shot.angle, shot.shotSize);
+                                        // 动态计算是否显示面部输入框（仅作展示，实际prompt已处理）
                                         return (
-                                            <div key={r.id} className="p-3 bg-white/5 rounded-lg border border-white/5">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-mono text-white/70">{r.date}</span>
-                                                        {r.scriptName && <span className="text-[10px] text-indigo-300">🎬 {r.scriptName}</span>}
+                                            <div key={shot.id} className="bg-white/5 border border-white/10 rounded-xl p-4 relative group hover:border-purple-500/30 transition-all">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-xs">{index + 1}</span>
+                                                        <span className="text-xs text-white/60 font-mono">Shot {index + 1}</span>
                                                     </div>
-                                                    <span className="text-xs font-bold text-white">Total: {r.shots}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 h-6">
-                                                    <div className="h-full bg-cyan-500/40 rounded-l flex items-center justify-center text-[10px] relative min-w-[20px]" style={{width: `${(my/total)*100}%`}}>
-                                                        {my > 0 && <span className="absolute z-10 text-white shadow-black drop-shadow-md">{my}</span>}
-                                                    </div>
-                                                    <div className="h-full bg-pink-500/40 rounded-r flex items-center justify-center text-[10px] relative min-w-[20px]" style={{width: `${(pt/total)*100}%`}}>
-                                                        {pt > 0 && <span className="absolute z-10 text-white shadow-black drop-shadow-md">{pt}</span>}
+                                                    <div className="flex gap-2">
+                                                        {/* Read-only tags based on AI generation */}
+                                                        <span className="text-[9px] border border-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded">{shot.angle}</span>
+                                                        <span className="text-[9px] border border-pink-500/30 text-pink-300 px-1.5 py-0.5 rounded">{shot.shotSize}</span>
+                                                        <span className="text-[9px] border border-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded">{shot.cameraMove}</span>
                                                     </div>
                                                 </div>
+                                                
+                                                {/* Prompt Preview Block */}
+                                                <div className="bg-black/40 rounded-lg p-3 border border-white/5 font-mono text-sm text-gray-300 break-words leading-relaxed select-all">
+                                                    {generatePrompt(shot)}
+                                                </div>
+                                                
+                                                {/* Quick Delete */}
+                                                <button 
+                                                    onClick={() => removeShot(shot.id)} 
+                                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-white/20 hover:text-rose-400 transition-all"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
                                             </div>
                                         )
                                     })}
                                 </div>
-                            </div>
-                        );
-                    case 'cpr':
-                        return (
-                            <div className="space-y-4">
-                                <div className="text-xs text-white/50 mb-2">CPR 效率趋势 (越低越好)</div>
-                                <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-2">
-                                    {validRecords.map(r => {
-                                        const cprVal = parseFloat(r.cpr);
-                                        const isBad = cprVal > baseEfficiency;
-                                        return (
-                                            <div key={r.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-mono text-white/70">{r.date}</span>
-                                                    {r.scriptName && <span className="text-[10px] text-indigo-300">🎬 {r.scriptName}</span>}
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`text-xs px-2 py-0.5 rounded ${isBad ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                                                        {isBad ? '偏高' : '优秀'}
-                                                    </span>
-                                                    <span className={`font-mono font-bold w-16 text-right ${isBad ? 'text-rose-400' : 'text-emerald-400'}`}>{r.cpr}</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    case 'inefficiency':
-                        const badDays = validRecords.filter(r => r.isInefficient);
-                        return (
-                            <div className="space-y-4">
-                                <div className="text-xs text-white/50 mb-2">低效警告记录 ({badDays.length})</div>
-                                {badDays.length === 0 ? (
-                                    <div className="py-10 text-center text-emerald-400/50">
-                                        暂无异常，配合完美！
-                                    </div>
-                                ) : (
-                                    <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-2">
-                                        {badDays.map(r => (
-                                            <div key={r.id} className="p-3 bg-rose-500/10 rounded-lg border border-rose-500/20 flex flex-col gap-2">
-                                                <div className="flex justify-between">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-mono text-rose-200">{r.date}</span>
-                                                        {r.scriptName && <span className="text-[10px] text-rose-300/80">🎬 {r.scriptName}</span>}
-                                                    </div>
-                                                    <span className="text-xs bg-rose-500 text-white px-1.5 rounded h-fit">WARN</span>
-                                                </div>
-                                                <div className="flex justify-between text-xs text-rose-300/70">
-                                                    <span>消耗: {r.consumed}</span>
-                                                    <span>产出: {r.shots}</span>
-                                                    <span>CPR: {r.cpr}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                
+                                {/* Bottom Action Bar (Fixed) */}
+                                {shots.length > 0 && (
+                                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-[#050505] to-transparent flex justify-center">
+                                        <button onClick={addShot} className="bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs px-6 py-2 rounded-full backdrop-blur-md transition-all">
+                                            + Add Manual Shot
+                                        </button>
                                     </div>
                                 )}
                             </div>
-                        );
-                    case 'scripts':
-                        // 剧本数据聚合逻辑
-                        const scriptStats = validRecords.reduce((acc, r) => {
-                            const name = r.scriptName || 'Unknown';
-                            if (!acc[name]) acc[name] = { cost: 0, shots: 0, count: 0 };
-                            acc[name].cost += r.consumed;
-                            acc[name].shots += r.shots;
-                            acc[name].count += 1;
-                            return acc;
-                        }, {});
-                        const scriptList = Object.entries(scriptStats);
-                        
-                        return (
-                            <div className="space-y-4">
-                                <div className="text-xs text-white/50 mb-2">剧本效益分析</div>
-                                {scriptList.length === 0 ? (
-                                    <div className="py-10 text-center text-white/30">暂无剧本记录</div>
-                                ) : (
-                                    <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3">
-                                        {scriptList.map(([name, data]) => {
-                                            const avgCpr = data.shots > 0 ? (data.cost / data.shots).toFixed(1) : 0;
-                                            return (
-                                                <div key={name} className="p-3 bg-white/5 rounded-lg border border-white/5">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <Clapperboard className="w-4 h-4 text-indigo-400" />
-                                                            <span className="font-bold text-white">{name}</span>
-                                                        </div>
-                                                        <span className="text-xs text-white/40">{data.count} 天记录</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                                                        <div className="p-2 bg-white/5 rounded">
-                                                            <div className="text-white/40 mb-1">总消耗</div>
-                                                            <div className="font-mono text-white">{data.cost}</div>
-                                                        </div>
-                                                        <div className="p-2 bg-white/5 rounded">
-                                                            <div className="text-white/40 mb-1">总产出</div>
-                                                            <div className="font-mono text-cyan-300">{data.shots}</div>
-                                                        </div>
-                                                        <div className={`p-2 rounded ${parseFloat(avgCpr) > baseEfficiency ? 'bg-rose-500/10' : 'bg-emerald-500/10'}`}>
-                                                            <div className="text-white/40 mb-1">平均CPR</div>
-                                                            <div className={`font-mono font-bold ${parseFloat(avgCpr) > baseEfficiency ? 'text-rose-400' : 'text-emerald-400'}`}>{avgCpr}</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    default: return null;
-                }
-            };
-
-            return (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
-                    <div className="bg-[#0a0a0a]/90 border border-white/20 rounded-2xl w-full max-w-lg shadow-2xl animate-[modal-pop_0.3s_ease-out] overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-5 border-b border-white/10 bg-white/5">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                {title}
-                            </h3>
-                            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors"><X className="w-5 h-5 text-white/60" /></button>
-                        </div>
-                        <div className="p-5">
-                            {renderContent()}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // 编辑模态框 (保持不变)
-        const EditModal = ({ record, onClose, onSave, baseEfficiency }) => {
-            const [formData, setFormData] = useState({
-                date: record.timestamp.split('T')[0],
-                remaining: record.remaining,
-                consumed: record.consumed,
-                myShots: record.myShots || 0,
-                partnerShots: record.partnerShots || 0,
-                scriptName: record.scriptName || '',
-                type: record.type
-            });
-
-            const totalShots = parseInt(formData.myShots || 0) + parseInt(formData.partnerShots || 0);
-            const currentCPR = totalShots > 0 ? (formData.consumed / totalShots).toFixed(1) : 0;
-            const isInefficient = formData.type === 'normal' && formData.consumed > 1000 && (totalShots === 0 || parseFloat(currentCPR) > baseEfficiency);
-
-            const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
-
-            const handleSave = () => {
-                onSave({
-                    ...record,
-                    date: formData.date.replace(/-/g, '/'),
-                    timestamp: new Date(formData.date).toISOString(),
-                    remaining: parseInt(formData.remaining),
-                    consumed: parseInt(formData.consumed),
-                    myShots: parseInt(formData.myShots),
-                    partnerShots: parseInt(formData.partnerShots),
-                    scriptName: formData.scriptName,
-                    shots: totalShots,
-                    type: formData.type,
-                    cpr: currentCPR,
-                    isInefficient: isInefficient
-                });
-            };
-
-            return (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-                    <div className="bg-[#0f111a] border border-cyan-500/30 rounded-2xl w-full max-w-md shadow-[0_0_50px_rgba(6,182,212,0.15)] animate-[modal-in_0.3s_cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden">
-                        <div className="flex justify-between items-center p-5 border-b border-white/10 bg-gradient-to-r from-cyan-900/20 to-transparent">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2"><Edit2 className="w-5 h-5 text-cyan-400" /> Modify Record</h3>
-                            <button onClick={onClose}><X className="w-6 h-6 text-white/40 hover:text-white" /></button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">Date</label><input type="date" value={formData.date} onChange={e => handleChange('date', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500/50 outline-none" /></div>
-                                <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">Type</label><select value={formData.type} onChange={e => handleChange('type', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500/50 outline-none appearance-none"><option value="normal">Normal</option><option value="topup">Recharge</option><option value="initial">Initial</option></select></div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">Balance</label><input type="number" value={formData.remaining} onChange={e => handleChange('remaining', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:border-cyan-500/50 outline-none" /></div>
-                                <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">Cost</label><input type="number" value={formData.consumed} onChange={e => handleChange('consumed', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:border-cyan-500/50 outline-none" /></div>
-                            </div>
-                            {/* 剧本名称编辑 */}
-                            <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">Script Name</label><input type="text" value={formData.scriptName} onChange={e => handleChange('scriptName', e.target.value)} placeholder="Enter Script Name..." className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500/50 outline-none" /></div>
-                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
-                                <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">My Shots</label><input type="number" value={formData.myShots} onChange={e => handleChange('myShots', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:border-cyan-500/50 outline-none" /></div>
-                                <div><label className="text-[10px] font-bold text-cyan-200/40 uppercase">Partner</label><input type="number" value={formData.partnerShots} onChange={e => handleChange('partnerShots', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:border-cyan-500/50 outline-none" /></div>
-                            </div>
-                            <div className={`mt-2 p-3 rounded-lg border flex justify-between items-center text-xs ${isInefficient ? 'bg-rose-950/20 border-rose-500/20' : 'bg-emerald-950/20 border-emerald-500/20'}`}>
-                                <div><span className="opacity-50 block uppercase text-[10px]">Total</span><span className="font-mono font-bold text-lg">{totalShots}</span></div>
-                                <div className="text-right"><span className="opacity-50 block uppercase text-[10px]">CPR</span><span className={`font-mono font-bold text-lg ${parseFloat(currentCPR) > baseEfficiency ? 'text-rose-400' : 'text-emerald-400'}`}>{currentCPR}</span></div>
-                            </div>
-                        </div>
-                        <div className="p-5 border-t border-white/10 flex gap-3">
-                            <button onClick={onClose} className="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-bold text-slate-300">Cancel</button>
-                            <button onClick={handleSave} className="flex-1 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-sm font-bold text-white shadow-[0_0_15px_-3px_rgba(8,145,178,0.5)]">Save Changes</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
+        // --- App Component (Complete) ---
         function App() {
             const [records, setRecords] = useState([]);
             const [dateStr, setDateStr] = useState(() => new Date().toISOString().split('T')[0]);
             const [remainingPoints, setRemainingPoints] = useState('');
             const [myShots, setMyShots] = useState('');
             const [partnerShots, setPartnerShots] = useState('');
-            const [scriptName, setScriptName] = useState(''); // 新增剧本名字状态
+            const [scriptName, setScriptName] = useState('');
             const [isTopUp, setIsTopUp] = useState(false);
-            const [showDanger, setShowDanger] = useState(false); // 危险页面状态
+            const [showDanger, setShowDanger] = useState(false);
             
             const [editingRecord, setEditingRecord] = useState(null);
             const [activeDetail, setActiveDetail] = useState(null);
             const [showGame, setShowGame] = useState(false);
+            const [showDirector, setShowDirector] = useState(false);
             
             const [baseEfficiency, setBaseEfficiency] = useState(60); 
             const [triggerThreshold, setTriggerThreshold] = useState(1000);
@@ -540,17 +608,14 @@
             const lastRecord = records.length > 0 ? records[0] : null;
             const totalShots = (parseInt(myShots) || 0) + (parseInt(partnerShots) || 0);
 
-            // 连胜计算逻辑 (Gamification)
             const efficiencyStreak = useMemo(() => {
                 let streak = 0;
-                // 从最近的记录开始倒序检查
-                // 仅计算 type='normal' 的记录
                 for (const r of records) {
                     if (r.type === 'normal') {
                         if (!r.isInefficient) {
                             streak++;
                         } else {
-                            break; // 遇到一次低效就中断
+                            break;
                         }
                     }
                 }
@@ -588,7 +653,7 @@
                     shots: shots,
                     myShots: parseInt(myShots) || 0,
                     partnerShots: parseInt(partnerShots) || 0,
-                    scriptName: scriptName, // 保存剧本名
+                    scriptName: scriptName,
                     type: type,
                     isInefficient: isInefficient,
                     cpr: currentCPR.toFixed(1)
@@ -597,7 +662,7 @@
                 setRemainingPoints('');
                 setMyShots('');
                 setPartnerShots('');
-                setScriptName(''); // 清空剧本名输入
+                setScriptName('');
                 setIsTopUp(false);
             };
 
@@ -628,10 +693,7 @@
                 const totalShots = normalRecords.reduce((acc, curr) => acc + curr.shots, 0);
                 const avgCPR = totalShots > 0 ? (totalConsumed / totalShots).toFixed(1) : 0;
                 const inefficiencyCount = records.filter(r => r.isInefficient).length;
-                
-                // 计算活跃剧本数 (简单的去重)
                 const uniqueScripts = new Set(normalRecords.map(r => r.scriptName).filter(Boolean)).size;
-                
                 return { totalConsumed, totalShots, avgCPR, inefficiencyCount, uniqueScripts };
             }, [records]);
 
@@ -643,11 +705,9 @@
                 ? (previewConsumption / totalShots).toFixed(1) 
                 : null;
 
-            // --- 渲染部分 ---
             return (
                 <div className="min-h-screen relative p-4 md:p-8 font-sans selection:bg-pink-500/30 selection:text-white">
-                    
-                    {/* --- 七彩高斯模糊背景层 --- */}
+                    {/* Background */}
                     <div className="fixed inset-0 -z-10 pointer-events-none bg-[#050505] overflow-hidden">
                         <div className="absolute w-[60vw] h-[60vw] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen animate-[aurora-1_15s_infinite_alternate]"></div>
                         <div className="absolute w-[50vw] h-[50vw] bg-cyan-500/20 rounded-full blur-[100px] mix-blend-screen animate-[aurora-2_20s_infinite_alternate]"></div>
@@ -655,125 +715,56 @@
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
                     </div>
 
-                    {/* 危险页面 Overlay */}
+                    {/* Modals */}
                     {showDanger && (
-                      <div 
-                        className="fixed inset-0 z-[100] bg-red-600 flex items-center justify-center cursor-pointer animate-[extreme-shake_0.5s_infinite]"
-                        onClick={() => setShowDanger(false)}
-                      >
+                      <div className="fixed inset-0 z-[100] bg-red-600 flex items-center justify-center cursor-pointer animate-[extreme-shake_0.5s_infinite]" onClick={() => setShowDanger(false)}>
                         <div className="flex flex-col items-center gap-12">
-                           <h1 className="text-[15rem] md:text-[20rem] font-black text-black leading-none select-none flex flex-col items-center drop-shadow-[10px_10px_0_rgba(255,255,255,0.2)]">
-                             <span>快</span>
-                             <span>跑</span>
-                           </h1>
+                           <h1 className="text-[15rem] md:text-[20rem] font-black text-black leading-none select-none flex flex-col items-center drop-shadow-[10px_10px_0_rgba(255,255,255,0.2)]"><span>快</span><span>跑</span></h1>
                         </div>
                       </div>
                     )}
-
-                    {/* 模态框 */}
                     {showGame && <GameModal onClose={() => setShowGame(false)} />}
-                    {editingRecord && (
-                        <EditModal record={editingRecord} onClose={() => setEditingRecord(null)} onSave={handleUpdateRecord} baseEfficiency={baseEfficiency} />
-                    )}
-                    {activeDetail && (
-                        <DetailModal 
-                            title={
-                                activeDetail === 'consumption' ? '每日算力消耗明细' : 
-                                activeDetail === 'shots' ? '每日产出 (我 vs 队友)' : 
-                                activeDetail === 'cpr' ? '每日 CPR 效率走势' : 
-                                activeDetail === 'scripts' ? '剧本效益审计面板' : '低效警告记录'
-                            }
-                            type={activeDetail}
-                            data={records}
-                            onClose={() => setActiveDetail(null)}
-                            baseEfficiency={baseEfficiency}
-                        />
-                    )}
+                    {showDirector && <DirectorModal onClose={() => setShowDirector(false)} />}
+                    {editingRecord && <EditModal record={editingRecord} onClose={() => setEditingRecord(null)} onSave={handleUpdateRecord} baseEfficiency={baseEfficiency} />}
+                    {activeDetail && <DetailModal title={activeDetail === 'consumption' ? '每日算力消耗明细' : activeDetail === 'shots' ? '每日产出 (我 vs 队友)' : activeDetail === 'cpr' ? '每日 CPR 效率走势' : activeDetail === 'scripts' ? '剧本效益审计面板' : '低效警告记录'} type={activeDetail} data={records} onClose={() => setActiveDetail(null)} baseEfficiency={baseEfficiency} />}
 
                     <div className="max-w-6xl mx-auto space-y-8 relative z-10">
-                        
-                        {/* Header - Relative for absolute positioning of abstract text */}
+                        {/* Header */}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative">
-                            {/* Left: Title */}
                             <div>
                                 <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex flex-col md:flex-row md:items-center gap-3 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 animate-pulse">
-                                        Vidu-ai 视频抽卡
-                                    </span>
-                                    <span className="text-white text-xl md:text-2xl font-bold flex items-center gap-2">
-                                        积分消耗计算平台
-                                        <div className="flex flex-col items-start">
-                                            <span className="text-xs bg-white/10 text-white px-2 py-0.5 rounded border border-white/20 tracking-widest uppercase backdrop-blur-md">
-                                                易专属
-                                            </span>
-                                            <span className="text-[9px] text-white/40 scale-90 origin-left mt-0.5 tracking-wider font-normal">
-                                                南昌酱油公司
-                                            </span>
-                                        </div>
-                                    </span>
+                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 animate-pulse">Vidu-ai 视频抽卡</span>
+                                    <span className="text-white text-xl md:text-2xl font-bold flex items-center gap-2">积分消耗计算平台<div className="flex flex-col items-start"><span className="text-xs bg-white/10 text-white px-2 py-0.5 rounded border border-white/20 tracking-widest uppercase backdrop-blur-md">易专属</span><span className="text-[9px] text-white/40 scale-90 origin-left mt-0.5 tracking-wider font-normal">南昌酱油公司</span></div></span>
                                 </h1>
-                                <p className="text-white/40 text-sm mt-2 font-medium tracking-wide flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    System Online · 七彩高斯引擎渲染中
-                                </p>
+                                <p className="text-white/40 text-sm mt-2 font-medium tracking-wide flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>System Online · 七彩高斯引擎渲染中</p>
                             </div>
-
-                            {/* Middle: Danger Trigger */}
-                            <div 
-                                className="hidden lg:flex absolute left-1/2 ml-[113px] top-1/2 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center cursor-pointer group z-20 hover:scale-110 transition-transform duration-300"
-                                onClick={() => setShowDanger(true)}
-                            >
-                                {/* Icon bigger: w-20 h-20 (Smaller than w-28, but still big) */}
+                            <div className="hidden lg:flex absolute left-1/2 ml-[113px] top-1/2 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center cursor-pointer group z-20 hover:scale-110 transition-transform duration-300" onClick={() => setShowDanger(true)}>
                                 <AlertTriangle className="w-20 h-20 text-red-600 animate-pulse drop-shadow-[0_0_35px_rgba(220,38,38,1)]" />
-                                {/* Text below, red, smaller, tight margin */}
-                                <span className="text-red-600 font-black text-[10px] tracking-[0.2em] mt-1 bg-black/80 px-4 py-2 rounded border border-red-600/80 backdrop-blur-md shadow-[0_0_15px_rgba(220,38,38,0.6)] whitespace-nowrap opacity-100">
-                                    危险！！禁止打开！！
-                                </span>
+                                <span className="text-red-600 font-black text-[10px] tracking-[0.2em] mt-1 bg-black/80 px-4 py-2 rounded border border-red-600/80 backdrop-blur-md shadow-[0_0_15px_rgba(220,38,38,0.6)] whitespace-nowrap opacity-100">危险！！禁止打开！！</span>
                             </div>
-                            
-                            {/* Right: Controls */}
                             <div className="flex items-center gap-3 relative z-10">
-                                {/* 连胜统计 */}
-                                {efficiencyStreak > 0 && (
-                                    <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 px-3 py-2 rounded-full backdrop-blur-md animate-[pulse-glow_2s_infinite]">
-                                        <Flame className="w-4 h-4 text-orange-400" />
-                                        <span className="text-xs font-bold text-orange-200">{efficiencyStreak} Days Efficient</span>
-                                    </div>
-                                )}
-
-                                {/* 小游戏入口 */}
-                                <button 
-                                    onClick={() => setShowGame(true)}
-                                    className="bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-full transition-all hover:scale-110 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] group"
-                                    title="Play Neural Gacha"
-                                >
-                                    <Gamepad2 className="w-5 h-5 text-purple-300 group-hover:text-purple-100" />
-                                </button>
-
+                                {efficiencyStreak > 0 && <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 px-3 py-2 rounded-full backdrop-blur-md animate-[pulse-glow_2s_infinite]"><Flame className="w-4 h-4 text-orange-400" /><span className="text-xs font-bold text-orange-200">{efficiencyStreak} Days Efficient</span></div>}
+                                <button onClick={() => setShowGame(true)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-full transition-all hover:scale-110 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] group" title="Play Neural Gacha"><Gamepad2 className="w-5 h-5 text-purple-300 group-hover:text-purple-100" /></button>
                                 <div className="hidden md:flex gap-4 text-xs font-bold text-white/80 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-full shadow-lg">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></div>
-                                        <span className="text-emerald-300">Target &lt; {baseEfficiency}</span>
-                                    </div>
+                                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></div><span className="text-emerald-300">Target &lt; {baseEfficiency}</span></div>
                                     <div className="w-px h-4 bg-white/10"></div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]"></div>
-                                        <span className="text-rose-400">Alert &gt; {baseEfficiency}</span>
-                                    </div>
+                                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]"></div><span className="text-rose-400">Alert &gt; {baseEfficiency}</span></div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Stats Overview - 5个卡片布局 */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {/* Stats - Now 6 Cards (5 Data + 1 Director Tool) */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                             {[
                                 { id: 'consumption', label: "算力总消耗", value: stats.totalConsumed.toLocaleString(), icon: TrendingDown, color: "text-white" },
                                 { id: 'shots', label: "总生成镜头", value: stats.totalShots, icon: Users, color: "text-cyan-300" },
                                 { id: 'cpr', label: "平均 CPR", value: stats.avgCPR, sub: "分/镜", icon: BarChart2, color: parseFloat(stats.avgCPR) > baseEfficiency ? "text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" : "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]" },
                                 { id: 'inefficiency', label: "低效警告", value: stats.inefficiencyCount, icon: AlertTriangle, color: stats.inefficiencyCount > 0 ? "text-rose-500" : "text-emerald-500" },
-                                { id: 'scripts', label: "活跃剧本", value: stats.uniqueScripts, icon: Clapperboard, color: "text-indigo-400", sub: "Projects" }
+                                { id: 'scripts', label: "活跃剧本", value: stats.uniqueScripts, icon: Clapperboard, color: "text-indigo-400", sub: "Projects" },
+                                // New Director Card
+                                { id: 'director', label: "提示词导演", value: "OPEN", icon: Wand2, color: "text-purple-400", sub: "Tool", action: true }
                             ].map((item, idx) => (
-                                <Card key={idx} onClick={() => setActiveDetail(item.id)} className="group">
+                                <Card key={idx} onClick={() => item.action ? setShowDirector(true) : setActiveDetail(item.id)} className="group">
                                     <div className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-3 flex items-center justify-between">
                                         <div className="flex items-center gap-2"><item.icon className="w-3.5 h-3.5" /> {item.label}</div>
                                         <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -786,7 +777,7 @@
                             ))}
                         </div>
 
-                        {/* Input Section */}
+                        {/* Input Section (Keeping existing code...) */}
                         <Card className="!bg-white/5 !border-white/10 shadow-[0_0_50px_-20px_rgba(255,255,255,0.1)]">
                             <div className="flex flex-col gap-6">
                                 <div className="flex justify-between items-center border-b border-white/5 pb-4">
@@ -802,50 +793,40 @@
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-                                    {/* Toggle */}
                                     <div className="md:col-span-12 flex items-center gap-3 mb-1">
                                         <label className="group flex items-center gap-3 cursor-pointer select-none">
-                                            <div className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${isTopUp ? 'bg-emerald-500/80' : 'bg-white/10'}`} 
-                                                onClick={() => setIsTopUp(!isTopUp)}>
+                                            <div className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${isTopUp ? 'bg-emerald-500/80' : 'bg-white/10'}`} onClick={() => setIsTopUp(!isTopUp)}>
                                                 <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-all duration-300 ${isTopUp ? 'translate-x-6' : 'translate-x-0'}`}></div>
                                             </div>
-                                            <span className={`text-xs font-bold uppercase tracking-wide transition-colors ${isTopUp ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'}`}>
-                                                {isTopUp ? "RECHARGE MODE" : "AUDIT MODE"}
-                                            </span>
+                                            <span className={`text-xs font-bold uppercase tracking-wide transition-colors ${isTopUp ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'}`}>{isTopUp ? "RECHARGE MODE" : "AUDIT MODE"}</span>
                                         </label>
                                     </div>
                                     
-                                    {/* Date */}
                                     <div className="md:col-span-3 relative group">
                                         <label className="block text-[10px] font-bold text-white/30 mb-2 uppercase tracking-wider ml-1 group-focus-within:text-white transition-colors">Date</label>
                                         <input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/10 focus:outline-none focus:border-white/30 focus:bg-black/40 transition-all font-mono text-lg" />
                                     </div>
 
-                                    {/* Balance */}
                                     <div className="md:col-span-3 relative group">
                                         <label className="block text-[10px] font-bold text-white/30 mb-2 uppercase tracking-wider ml-1 group-focus-within:text-white transition-colors">Balance</label>
                                         <input type="number" value={remainingPoints} onChange={(e) => setRemainingPoints(e.target.value)} placeholder="0" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/10 focus:outline-none focus:border-white/30 focus:bg-black/40 transition-all font-mono text-lg" />
                                     </div>
 
-                                    {/* Script Name (新增剧本名字输入) */}
                                     <div className="md:col-span-6 relative group">
                                         <label className="block text-[10px] font-bold text-white/30 mb-2 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Script Name (剧本)</label>
                                         <input type="text" value={scriptName} onChange={(e) => setScriptName(e.target.value)} placeholder="e.g. Star Wars V" disabled={isTopUp} className={`w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/10 focus:outline-none focus:border-indigo-500/50 focus:bg-black/40 transition-all font-mono text-lg ${isTopUp ? 'opacity-20 cursor-not-allowed' : ''}`} />
                                     </div>
 
-                                    {/* My Shots */}
                                     <div className="md:col-span-4 relative group">
                                         <label className="block text-[10px] font-bold text-white/30 mb-2 uppercase tracking-wider ml-1 group-focus-within:text-cyan-400 transition-colors">My Shots</label>
                                         <input type="number" value={myShots} onChange={(e) => setMyShots(e.target.value)} placeholder="Me" disabled={isTopUp} className={`w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/10 focus:outline-none focus:border-cyan-500/50 focus:bg-black/40 transition-all font-mono text-lg ${isTopUp ? 'opacity-20 cursor-not-allowed' : ''}`} />
                                     </div>
 
-                                    {/* Partner Shots */}
                                     <div className="md:col-span-4 relative group">
                                         <label className="block text-[10px] font-bold text-white/30 mb-2 uppercase tracking-wider ml-1 group-focus-within:text-pink-400 transition-colors">Partner</label>
                                         <input type="number" value={partnerShots} onChange={(e) => setPartnerShots(e.target.value)} placeholder="Ta" disabled={isTopUp} className={`w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/10 focus:outline-none focus:border-pink-500/50 focus:bg-black/40 transition-all font-mono text-lg ${isTopUp ? 'opacity-20 cursor-not-allowed' : ''}`} />
                                     </div>
 
-                                    {/* Button */}
                                     <div className="md:col-span-4">
                                         <button onClick={handleAdd} disabled={!remainingPoints} className="w-full h-[52px] bg-white/10 hover:bg-white/20 disabled:bg-black/20 disabled:text-white/20 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-all border border-white/10 active:scale-95 flex items-center justify-center gap-2 group">
                                             <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -854,7 +835,6 @@
                                     </div>
                                 </div>
 
-                                {/* Preview */}
                                 {!isTopUp && previewConsumption !== null && (
                                     <div className={`mt-2 rounded-lg p-4 text-center border backdrop-blur-md transition-all animate-pulse ${previewConsumption > triggerThreshold && previewCPR > baseEfficiency ? 'bg-rose-500/10 border-rose-500/20' : 'bg-white/5 border-white/10'}`}>
                                         <div className="flex justify-center items-center gap-8">
