@@ -130,6 +130,7 @@
         const ImagePlus = ({ className }) => <IconWrapper className={className}><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path><line x1="16" y1="5" x2="22" y2="5"></line><line x1="19" y1="2" x2="19" y2="8"></line><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></IconWrapper>;
         const CheckCircle = ({ className }) => <IconWrapper className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></IconWrapper>;
         const AlertCircle = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></IconWrapper>;
+        const Send = ({ className }) => <IconWrapper className={className}><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></IconWrapper>;
 
         // --- 2. 基础 UI 组件 (七彩高斯风) ---
         const Card = ({ children, className = "", onClick }) => (
@@ -201,6 +202,11 @@
             
             // API Test Status
             const [apiStatus, setApiStatus] = useState({ loading: false, success: null, msg: '' });
+            
+            // AI Chat Assistant States
+            const [chatMessages, setChatMessages] = useState([]);
+            const [chatInput, setChatInput] = useState("");
+            const [isChatLoading, setIsChatLoading] = useState(false);
 
             useEffect(() => {
                 localStorage.setItem('vidu_ai_provider', provider);
@@ -292,6 +298,114 @@
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
                 alert("已复制到剪贴板！");
+            };
+
+            // AI Chat Assistant Functions
+            const addChatMessage = (role, content) => {
+                setChatMessages(prev => [...prev, { role, content, id: Date.now() }]);
+            };
+
+            const sendChatMessage = async () => {
+                if (!chatInput.trim() || isChatLoading) return;
+                
+                const userMessage = chatInput.trim();
+                setChatInput("");
+                setIsChatLoading(true);
+                
+                // Add user message to chat
+                addChatMessage("user", userMessage);
+                
+                // Prepare system prompt for improving prompt generation
+                const systemPrompt = `你是专业的视频生成提示词优化师，专门帮助用户改进Vidu视频生成的提示词。
+                用户可能提供以下类型的信息：
+                1. 原始提示词（需要优化）
+                2. 期望效果描述（需要转换为标准提示词）
+                3. 对现有提示词的修改建议
+                4. 特定风格、场景或技术要求
+                
+                你的任务是根据用户需求生成或优化提示词，并解释优化理由。
+                如果用户询问如何改进提示词，请提供具体的技术性建议。
+                如果用户提供原始文本，请将其转换为高质量的视频生成提示词。
+                使用中文回复，保持专业而友好的语气。`;
+
+                try {
+                    let responseContent = "";
+                    
+                    if (provider === 'offline') {
+                        // 离线模式下的模拟响应
+                        responseContent = `收到您的请求："${userMessage}"\n\n当前处于离线模式，无法调用AI服务。建议您切换到在线模式以获得更智能的提示词优化服务。`;
+                    } else {
+                        let endpoint, headers, body;
+                        
+                        if (provider === 'zhipu') {
+                            const token = generateZhipuJWT(cleanKey(zhipuKey));
+                            if (!token) throw new Error("Key无效");
+                            endpoint = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+                            headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+                            body = JSON.stringify({ 
+                                model: "glm-4-flash", 
+                                messages: [
+                                    { role: "system", content: systemPrompt },
+                                    ...chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
+                                    { role: "user", content: userMessage }
+                                ], 
+                                temperature: 0.6 
+                            });
+                        } else if (provider === 'deepseek') {
+                            const k = cleanKey(deepseekKey);
+                            if (!k) throw new Error("Key无效");
+                            endpoint = 'https://api.deepseek.com/chat/completions';
+                            headers = { 'Authorization': `Bearer ${k}`, 'Content-Type': 'application/json' };
+                            body = JSON.stringify({ 
+                                model: "deepseek-chat", 
+                                messages: [
+                                    { role: "system", content: systemPrompt },
+                                    ...chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
+                                    { role: "user", content: userMessage }
+                                ], 
+                                temperature: 0.6, 
+                                stream: false 
+                            });
+                        } else if (provider === 'siliconflow') {
+                            const k = cleanKey(siliconFlowKey);
+                            if (!k) throw new Error("Key无效");
+                            endpoint = 'https://api.siliconflow.cn/v1/chat/completions';
+                            headers = { 'Authorization': `Bearer ${k}`, 'Content-Type': 'application/json' };
+                            body = JSON.stringify({ 
+                                model: "deepseek-ai/DeepSeek-V3", 
+                                messages: [
+                                    { role: "system", content: systemPrompt },
+                                    ...chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
+                                    { role: "user", content: userMessage }
+                                ], 
+                                temperature: 0.6, 
+                                stream: false 
+                            });
+                        }
+                        
+                        const response = await fetch(endpoint, { method: 'POST', headers, body });
+                        if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
+                        
+                        const data = await response.json();
+                        responseContent = data.choices[0].message.content;
+                    }
+                    
+                    // Add AI response to chat
+                    addChatMessage("assistant", responseContent);
+                } catch (error) {
+                    console.error("Chat error:", error);
+                    addChatMessage("assistant", `抱歉，发送消息时出现错误：${error.message}。请检查API配置并重试。`);
+                } finally {
+                    setIsChatLoading(false);
+                }
+            };
+
+            // Handle Enter key press for chat
+            const handleChatKeyPress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
             };
 
             const handleImgUpload = (e, setter) => {
@@ -506,6 +620,59 @@
                                         {isAiProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Sparkles className="w-4 h-4" />}
                                         START AUTO-DIRECTOR (开始分镜)
                                     </button>
+                                </div>
+                                
+                                {/* 4. AI Chat Assistant for Prompt Improvement */}
+                                <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col">
+                                    <div className="text-[10px] font-bold text-blue-300 uppercase flex items-center gap-1 mb-2">
+                                        <Sparkles className="w-3 h-3" /> AI Prompt Assistant
+                                    </div>
+                                    <div className="text-[9px] text-white/60 mb-3">与AI对话优化提示词，改善生成效果</div>
+                                    
+                                    {/* Chat Messages Container */}
+                                    <div className="flex-1 min-h-[120px] max-h-40 bg-black/30 rounded-lg p-3 mb-2 overflow-y-auto custom-scrollbar space-y-2">
+                                        {chatMessages.length === 0 ? (
+                                            <div className="text-[9px] text-white/40 h-full flex items-center justify-center">
+                                                开始与AI助手对话，获取提示词优化建议...
+                                            </div>
+                                        ) : (
+                                            chatMessages.map((msg) => (
+                                                <div 
+                                                    key={msg.id} 
+                                                    className={`text-[9px] p-2 rounded-lg max-w-full ${
+                                                        msg.role === 'user' 
+                                                            ? 'bg-purple-500/20 text-purple-200 ml-auto' 
+                                                            : 'bg-blue-500/10 text-blue-200 mr-auto'
+                                                    }`}
+                                                >
+                                                    {msg.content}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                    
+                                    {/* Chat Input Area */}
+                                    <div className="flex gap-1">
+                                        <textarea
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            onKeyDown={handleChatKeyPress}
+                                            placeholder="向AI询问提示词优化技巧..."
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-white focus:outline-none focus:border-purple-400 resize-none h-10"
+                                            rows="1"
+                                        />
+                                        <button
+                                            onClick={sendChatMessage}
+                                            disabled={isChatLoading}
+                                            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg px-3 flex items-center transition-all"
+                                        >
+                                            {isChatLoading ? (
+                                                <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            ) : (
+                                                <Send className="w-3 h-3" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
